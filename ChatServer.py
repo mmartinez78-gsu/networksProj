@@ -5,6 +5,7 @@ import argparse#import argparse module to handle command line arguments
 import time#import time module to handle the time out after 3 minutes of inactivity and the period of server rest/idle time
 from protocol import send_object, recv_object#imports send_object and recv_object functions from protocol.py for sending and receiving messages
 MAX_THREADS = 4#sets the maximum number of threads allowed to 4
+
 #starts the ChatServer communication over the network
 class ChatServer:
     def __init__(self, port, debug):#ChatServer initialization function that takes the instance of the class, the port number, and the debug level
@@ -15,10 +16,12 @@ class ChatServer:
         self.channels = {}#creates an empty dictionary to hold the channels and which users are in them  
         self.lock = threading.Lock()#creates a threading lock to prevent data crashes from handling of multiple clients accessing the same resources
         self.last_activity = time.time()#variable to store the current timestamp for idle shutdown
+        self.thread_limit = threading.Semaphore(MAX_THREADS)
 
     def log(self, msg):#function to log messages when debug level is set to 1
         if self.debug == 1:#for when debug level is 1
             print("[DEBUG]", msg)#prints the debug message out
+            
     #start the chatserver listening for client connections
     def start(self):
         server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)#creates a TCP socket for the server
@@ -30,18 +33,23 @@ class ChatServer:
                 if time.time() - self.last_activity > 180:#checks if the server has been idle for more than 3 minutes or 180 seconds
                     print("The server has been idle for 3 minutes. It is now shutting down.")#prints out that the server is shutting down due to inactivity
                     break#breaks out of the loop to shut down the server
+                
                 #limiting the number of threads to prevent data corruption from overload
-                if threading.active_count()-1 >= MAX_THREADS:#checks if the number of active threads minus the main thread is greater than or equal to the maximum allowed threads
-                    time.sleep(0.1)#lets the server rest for a short time before checking again
-                    continue#continues to the next iteration of the loop
+                # if threading.active_count()-1 >= MAX_THREADS:#checks if the number of active threads minus the main thread is greater than or equal to the maximum allowed threads
+                #     time.sleep(0.1)#lets the server rest for a short time before checking again
+                #     continue#continues to the next iteration of the loop
                 server_sock.settimeout(1)#sets a timeout of 1 second for allowing the acceptance of new connections
+                
                 try:#tries to accept a new client connection
                     client_sock, addr = server_sock.accept()#successfully accepts a new client connection
                     self.log(f"Accepted connection from {addr}")#logs the accepted connection when debug level is set to 1
                 except socket.timeout:#handles the exception for when the timeout period is reached without a new connection
                     continue#continues to the next iteration of the loop if no connection was made within the timeout period
                 self.last_activity = time.time()#updates the last activity timestamp to the current time
+                
+                self.thread_limit.acquire()#gets the thread limit semaphore before starting a new thread
                 threading.Thread(target=self.handle_client, args=(client_sock,), daemon=True).start()#starts a new thread to handle the connected client
+                
         except KeyboardInterrupt:#handles the keyboard interrupt exception for clean shutdown with Ctrl-C
             print("\nThe server is shutting down from Ctrl-C...")
         finally:
@@ -65,6 +73,7 @@ class ChatServer:
             self.log(f"There is a client error: {e}")#logs the client error
         finally:
             self.cleanup_client(sock)#finally cleans up the client connection when done
+            self.thread_limit.release()#releases the thread limit semaphore when done handling the client
     
     #function to process valid commands
     def process_command(self, sock, user, obj):#processes the command received from the client
@@ -238,6 +247,7 @@ class ChatServer:
                 continue#continues with looking at the next client socket
             if user["nickname"] in self.channels.get(channel, []):#for when the user's nickname is in the set of users for the specified channel
                 send_object(sock, obj)#sends the object message to the client socket in the specified channel
+                
 #main function to start the ChatServer with command line arguments
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()#creates an argument parser object to handle command line arguments
