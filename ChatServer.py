@@ -22,10 +22,11 @@ class ChatServer:
         self.lock=threading.Lock()#creates a threading lock to prevent data crashes from handling of multiple clients accessing the same resources
         self.recentActivity=time.time()#variable to store the current timestamp for idle shutdown
         self.thread_limit = threading.Semaphore(MAX_THREADS)
+        self.threads=[]
 
     def logging(self, msg):#function to log messages when debug level is set to 1
         if self.debug==1:#for when debug level is 1
-            print("server log: ", msg)#prints the debug message out
+            print(Fore.BLUE + "server log: ", msg)#prints the debug message out
             
     #start the chatserver listening for client connections
     def startServer(self):
@@ -41,17 +42,20 @@ class ChatServer:
                 netSock.settimeout(1)#sets a timeout of 1 second for allowing the acceptance of new connections
                 try:#tries to accept a new client connection
                     chatClientSock, address = netSock.accept()#successfully accepts a new client connection
-                    self.logging(f"Accepted connection from {address}")#logs the accepted connection when debug level is set to 1
+                    self.logging(Fore.BLUE + f"Accepted connection from {address}")#logs the accepted connection when debug level is set to 1
                 except socket.timeout:#handles the exception for when the timeout period is reached without a new connection
                     continue#continues to the next iteration of the loop if no connection was made within the timeout period
                 self.recentActivity=time.time()#updates the last activity timestamp to the current time
                 self.thread_limit.acquire()#gets the thread limit semaphore before starting a new thread
-                threading.Thread(target=self.clientConnections,args=(chatClientSock,),daemon=True).start()#starts a new thread to handle the connected client
+                t = threading.Thread(target=self.clientConnections, args=(chatClientSock,))
+                t.start()#starts a new thread to handle the connected client
                 
         except KeyboardInterrupt:#handles the keyboard interrupt exception for clean shutdown with Ctrl-C
             print(Fore.RED + "\nThe server is shutting down from Ctrl-C...")
         finally:
             netSock.close()#finally closes the server socket when the server is shutting down
+            for t in self.threads:
+                t.join(timeout=1)
     
     #function to handle the individual client connections
     def clientConnections(self, sock):
@@ -62,7 +66,7 @@ class ChatServer:
                 obj=receiveObject(sock)#receives an object from the client socket
                 if obj is None:#if no object is received
                     break#the loop is broken and the client is disconnected
-                if obj=="":#if the message is empty
+                if not isinstance(obj, dict):#if the message is empty
                     continue#continues to the next iteration of the loop because there is no message to process
                 if obj.get("type")!="command":#if the object is not a valid command
                     continue#continues to the next iteration of the loop because the command was invalid
