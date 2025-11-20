@@ -36,7 +36,7 @@ We tested the functionality of this program while incrementaly building it. We u
 | Test Case | Description | Input | Expected Outcome | Actual Outcome | 
 | ----------- | ----------- | ----------- | ----------- | ----------- |
 | client connect to server | client attempts to connect to correct chat server with correct port number | /connect localhost 5050 | client successfully connects to chat server | client successfully connects to chat server and corresponding message is shown |
-| client connect to server | client attempts to connect to correct chat server with incorrect port number | /connect localhost 5051 | client successfully connects to chat server | client fails to connect to chat server and corresponding message is shown |
+| client connect to server | client attempts to connect to correct chat server with incorrect port number | /connect localhost 5051 | client unsuccessfully connects to chat server | client fails to connect to chat server and corresponding message is shown |
 | client picks nickname | client attempts to self assign a nickname when connected to the server | /nick nickname | nickname is assigned to the user successfully | nickname is assigned to user and message is displayed |
 | client picks nickname | client attempts to assign nickname that is already taken | /nick nickname | nickname will not be assigned and display message | nickname is nickname is not assigned and an error message is shown in the output |
 | show list of channels | client will enter command to show the list of available channels to join while connected to server | /list | an output is shown with the list of available servers | an output is shown with the list of available servers |
