@@ -1,18 +1,15 @@
 # Team 16
 
 ### Authors
-Lauren Warren <br>
+Lauren Warren (002672844) <br>
 Fernando Curiel-Moysen (002710521)
 <br>
 ### Video Link
 placeholder
 <br>
 
-### Summary
-We have created a Chat Server that can handle multiple clients over an internet connection. These clients communicate with the server and accept basic commands that allow for client modifications and personalizations. Beginning with the protocol module, we have the handling for the encoding and decoding of the JSON objects. This is how all of the communication between the client and the server is actually received and sent between each other. This module converts JSON strings to Python modules and vice versa. Objects are sent over sockets, converted into strings, encoded, retrieved from the socket, decoded, and then checked for any whitespaces before or after the data. The line of text is then received over a socket and converted into a Python object. This is how the clients can communicate with the server.
-
-The chat server handles any and all clients (and their messages) that connect over the network. We first import the sendObject and receiveObject functions from our protocol so that the encoded and decoded data can be sent and received. We also used the socket, threading, and argparse modules to handle the communication over the network connection, allow for multiple channels and servers to connect, and to handle the arguments being passed with each command, respectively. We then included  the time module to handle the time out after idling feature and the period of rest for the server. The chat server communication begins with a function aptly named, ChatServer. This function begins by intitializing the variables that will be used throughout the connection so that varying functions (i.e. connecting to a port, setting the debug level, storing chosen nicknames, etc) can operate at the highest level. We included a logging function so that the server messages and user activity could be logged. The server is started by creating a TCP socket that is binded to all interfaces on the specific port. The socket is then able to listen for any incoming connections from clients. This function checks for any idleness of the server over 3 minutes, makes sure there are no more than 4 threads connected at once, and shows the logging message that is sent once a client is successfully connected. It also shows the message that is sent if the user presses ctrl-c. The function for handling client connections initalizes with the client not yet having a nickname or having joined a channel. We then receive the user's keyboard input as an object over the socket that is interpreted as one of the many commands that will be listed below. If the connection is severed or the user disconnects, the cleanup process begins where all of the user information is cleaned out to prevent against server corruption. The processingCommands function includes conditional statements for all of the possible user commands. Each of the commands has a function that sends objects over the socket based on what the user is entering. The main function handles the very beginning of connection to the server and allows for the reading of arguments that are trying to parsed during connection attempts. 
-*describe chat client*
+### Summary/Guide
+**see manifestGuide.md file**
 
 <br>
 
@@ -27,11 +24,18 @@ The chat server handles any and all clients (and their messages) that connect ov
 - `python3 ChatServer.py -p 5050` (port number can be changed)
 5. Start chat client in a **separate** terminal while the serving is running
 - `python3 ChatClient.py`
+6. Connect to server from client
+- `/connect localhost 5050`
+7. Begin entering commands, start with creating a nickname
+- `/nick insert_name_here`
+8. Use /help to see what other commands are available to you!
+9. Open up to 3 additional terminals to try out the multi-channel, multi-threaded feature
+
 
 <br>
 
 ### Testing
-We tested the functionality of this program while incrementaly building it. We used unit testing to test each function and feature after being built. Integration testing was also helpful because we were able to test how different parts of the server work together to be able to handle multiple clients. Lastly, we tested the program as a whole which included starting the server and multiple clients. The clients made several calls to the server and we excpected the server to respond appropiately. We also used a table along the way to keep track of which features worked and which didn't. 
+We tested the functionality of this program while incrementally building it. We used unit testing to test each function and feature after being built. Integration testing was also helpful because we were able to test how different parts of the server work together to be able to handle multiple clients. We started out by looking at how one client would behave when trying to connect to the server. After some trial and error, we managed to get the one client to be fully functional, but had a few issues with the quit and ctrl-c implementation. Most of the confusion with this portion of the project was aided by ChatGPT, in that, we could better understand what the skeleton structure of our quit and ctrl-c functions should look like. It helped us to visualize which attributes were unnecessary to the functions and which attributes needed to be implemented immediately. Once we got those bugs straightened out, we were able to move on to implementing functionality for multiple channels at a time. This stage of the process was not too difficult, as it simply involved creating a dictionary to store the channels and the users that occupied/left them at any time. The most difficult portion came when trying to figure out the behavior for multiple clients operating at once AND providing multiple channels. We had to find a way to assign each client its own thread, which is where generative AI lended a helping hand. We needed to know how we could create a thread for each client and allow them to run concurrently without using daemon since it was resulting in terminating too soon. Our interactions with generative AI were documented and can be found in a file titled ai_interactions.md. As we moved along through the connection process and kept on trying to get multiple servers and multiple channels to work concurrently, we made sure to frequently run the program along the way so as to debug any smaller errors that popped up along the way. Lastly, we tested the program as a whole which included starting the server and multiple clients. The clients made several calls to the server and we expected the server to respond appropriately. We also used a table along the way to keep track of which features worked and which didn't. 
 
 | Test Case | Description | Input | Expected Outcome | Actual Outcome | 
 | ----------- | ----------- | ----------- | ----------- | ----------- |
@@ -48,5 +52,6 @@ We tested the functionality of this program while incrementaly building it. We u
 <br>
 
 ### Reflection
+All in all, this project was a great way to test our knowledge of what we've learned so far in the course. It provided a refreshing throwback to the TCP/UDP mini project we had earlier on in the semester and also had some similarities to the wireshark lab assignments. While there were parts that were more difficult to complete than others, many of the functions were alike which made them easier to replicate when it came to writing one after the other. The internet relay chat protocol link also came in handy when trying to understand how the channels and clients should behave and be named. It also helped to see what the message formatting should look like for every log message that appeared in the client. This resource was most useful in understanding the overall concept of the project and how the general structure of our project should appear. While we were both responsible for testing the connection and debugging throughout the entirety of the project, Lauren most focused on getting the initial chat protocol commands working and designing their functions while Fernando focused more on getting the multi-threading connection. As of November 20, 2025, Matthew Martinez has not communicated with fellow group members, despite attempts via discord, and made 0 contributions to the project.
 
 <br>
