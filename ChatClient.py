@@ -1,5 +1,5 @@
 #this is the text based chat client that connect to the server and takes no command line arguments
-
+import sys
 #handle font coloring in terminal
 from colorama import init, Fore, Back, Style
 init(autoreset=True)#initialize colorama with auto reset to prevent color bleed in terminal
@@ -42,7 +42,18 @@ class ChatClient:
                     self.sock.close()#close the socket connection
                     self.sock = None#will reset the socket to None since there is no longer a connection
                     break#thread breaks out of the listening loop
-                print(Fore.CYAN + str(msg))#print the received message to the console for the user to see
+                # print("\n" + Fore.CYAN + str(msg) + "\n")#print the received message to the console for the user to see
+                
+                # CLEAR current input line
+                sys.stdout.write("\r\033[K")
+
+                # Print the message
+                print(Fore.CYAN + str(msg))
+
+                # Reprint prompt fresh
+                sys.stdout.write(white_font + "enter a command: ")
+                sys.stdout.flush()
+            
             except Exception as e:#if there is an error receiving the message, an error message will be printed
                 print(red_font + "There was an error trying to receive your message", e)
                 break#thread breaks out of the listening loop
