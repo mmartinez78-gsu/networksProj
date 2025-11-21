@@ -5,7 +5,7 @@ Lauren Warren (002672844) <br>
 Fernando Curiel-Moysen (002710521)
 <br>
 ### Video Link
-[YoutTube video for presentation](https://youtu.be/GBtwiPCMIps)
+[YouTube video for presentation](https://youtu.be/GBtwiPCMIps)
 <br>
 
 ### Summary/Guide
