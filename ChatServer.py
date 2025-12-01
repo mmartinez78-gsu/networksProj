@@ -5,7 +5,7 @@ from colorama import init, Fore
 
 init(autoreset=True)  # initialize colorama with auto reset to prevent color bleed in terminal
 
-from protocol import sendObject, \
+from protocol import WrappedSocket, sendObject, \
     receiveObject  # imports sendObject and receiveObject functions from protocol.py for sending and receiving messages
 import socket  # import socket module for communication over the network
 import threading  # import threading module to allow multiple tasks to be run at once while over the same process
@@ -74,6 +74,7 @@ class ChatServer:
                 netSock.settimeout(1)  # sets a timeout of 1 second for allowing the acceptance of new connections
                 try:  # tries to accept a new client connection
                     chatClientSock, address = netSock.accept()  # successfully accepts a new client connection
+                    wrapped_socket = WrappedSocket(chatClientSock)
                     self.logging(
                         Fore.BLUE + f"Accepted connection from {address}")  # logs the accepted connection when debug level is set to 1
                 except socket.timeout:  # handles the exception for when the timeout period is reached without a new connection
@@ -82,7 +83,7 @@ class ChatServer:
 
                 with self.lock:
                     self.threads = [th for th in self.threads if th.is_alive()]  # cleanup dead threads
-                t = threading.Thread(target=self.clientConnections, args=(chatClientSock,))
+                t = threading.Thread(target=self.clientConnections, args=(wrapped_socket,))
                 t.start()  # starts a new thread to handle the connected client
                 with self.lock:
                     self.threads.append(t)  # append to thread list to keep track of it
@@ -91,14 +92,13 @@ class ChatServer:
             print(Fore.RED + "\nThe server is shutting down from Ctrl-C...")
         finally:
             # Notify all connected clients about server shutdown
-            with self.lock:
-                for sock in list(self.clients.keys()):
-                    try:
-                        sendObject(sock, {"type": "info", "info": "Server is shutting down."})
-                    except Exception as e:
-                        self.logging(f"Failed to send shutdown message to a client: {e}")
-                    finally:
-                        self.quitProcess(sock)  # clean up the client socket and internal data
+            for sock in list(self.clients.keys()):
+                try:
+                    sendObject(sock, {"type": "info", "info": "Server is shutting down."})
+                except Exception as e:
+                    self.logging(f"Failed to send shutdown message to a client: {e}")
+                finally:
+                    self.quitProcess(sock)  # clean up the client socket and internal data
 
             netSock.close()  # finally closes the server socket when the server is shutting down
             for t in self.threads:

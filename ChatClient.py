@@ -10,7 +10,7 @@ yellow_font = Fore.YELLOW
 blue_font = Fore.BLUE
 white_font = Fore.WHITE
 
-from protocol import sendObject, receiveObject  # gets these modules from protocol.py for sending and receiving messages
+from protocol import sendObject, receiveObject, WrappedSocket  # gets these modules from protocol.py for sending and receiving messages
 import socket  # brings in the socket module so that the client can communicate over the network
 import threading  # threading module will allow for multiple tasks to be run at once while over the same process
 from email.mime.text import MIMEText  # formatting for the text to be used with messages being sent and received
@@ -21,6 +21,8 @@ class ChatClient:
     def __init__(self):
         self.sock = None  # initialize with None because there is no connection over a network yet
         self.nickname = None  # initialize with None because the user has not set a nickname yet
+        self.io_lock = threading.Lock()
+        self.exit = False
 
     # begin connection to server
     def clientConnect(self, host,
@@ -29,11 +31,15 @@ class ChatClient:
             print(yellow_font + "You are already connected to a server. Try /quit first.")
             return
         try:  # for when the user is not already connected to a server and a new connection can be made
-            self.sock = socket.socket(socket.AF_INET,
+            raw_sock = socket.socket(socket.AF_INET,
                                       socket.SOCK_STREAM)  # create socket object at specific IPv4 address and TCP connection for socket type
-            self.sock.connect((host, port))  # connect to the server using the retrieved host and port
+            raw_sock.connect((host, port))  # connect to the server using the retrieved host and port
+            new_sock = WrappedSocket(raw_sock)
             print(
                 green_font + f"Connected to {host}:{port}")  # print confirmation the you are now connected to the server at a specific host and port
+
+            self.sock = new_sock
+
             self.listener_thread = threading.Thread(target=self.listenerOnLoop)
             self.listener_thread.start()  # create new thread object that will be continuously listening for any and all incoming messages from the server
         except Exception as e:  # if the connection fails for any reason, an error message will be printed
@@ -44,7 +50,8 @@ class ChatClient:
     def listenerOnLoop(self):
         while True:  # while the thread is looping to listen for incoming messages
             try:
-                msg = receiveObject(self.sock)  # receives an object from the server over the network socket
+                with self.io_lock:
+                    msg = receiveObject(self.sock)  # receives an object from the server over the network socket
                 if msg is None:  # if there is no message received, the server has disconnected
                     print(red_font + "The server has disconnected.")
                     self.sock.close()  # close the socket connection
@@ -54,10 +61,16 @@ class ChatClient:
 
                 # Handle info messages
                 if isinstance(msg, dict) and msg.get("type") == "info":
-                    print(red_font + msg.get("info", "Server message"))
-                    if msg.get("info") == "Server is shutting down.":
+                    info_message = msg.get("info", "Server message")
+                    if info_message == "Server is shutting down." or \
+                            info_message == "You have disconnected from the server." or \
+                            "You have been disconnected from the server due to inactivity" in info_message:
+                        sys.stdout.write("\r\033[K")
+                        print(red_font + msg.get("info", "Server message"))
                         self.sock.close()
                         self.sock = None
+                        print(red_font + "You have disconnected from the server.")
+                        self.exit = True
                         break
 
                 else:
@@ -95,7 +108,7 @@ class ChatClient:
 
     def inputCommandsLoop(self):
         try:
-            while True:  # continuously loops to wait for user input
+            while not self.exit:  # continuously loops to wait for user input
                 try:
                     text = input(
                         white_font + "enter a command: ").strip()  # has > to prompt the user for input and .strip() to remove any whitespaces before or after the input
@@ -179,7 +192,9 @@ class ChatClient:
                         print(yellow_font + "Use this format: /say <channel> <text>")
                         continue
                     channel, message = parts[1], parts[2]
-                    sendObject(self.sock, {"type": "say", "channel": channel, "text": message})
+                    sendObject(self.sock, {"type": "command", "command": "say", "args": [
+                        channel, message
+                    ]})
 
                 elif text.startswith("/msg"):
                     if self.sock is None:
@@ -190,7 +205,9 @@ class ChatClient:
                         print(yellow_font + "Use this format: /msg <nickname> <text>")
                         continue
                     recipient, message = parts[1], parts[2]
-                    sendObject(self.sock, {"type": "msg", "to": recipient, "text": message})
+                    sendObject(self.sock, {"type": "command", "command": "msg", "args": [
+                        recipient, message
+                    ]})
 
                 elif text.startswith("/leave"):  # for when the user inputs the /leave command to leave a channel
                     if self.sock is None:  # for when there is no connection to a server yet
