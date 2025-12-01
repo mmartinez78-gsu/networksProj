@@ -437,7 +437,7 @@ if __name__ == "__main__":
     parser.add_argument("-p", type=int, required=True, help="Port")  # adds the port argument to the parser
     parser.add_argument("-d", type=int, default=0,
                         help="Debug level 0/1")  # adds the debug level argument to the parser
-    parser.add_argument("-t", type=int, default=0, help="Amount of inactive seconds to time out client (0 = disabled)")
+    parser.add_argument("-t", type=int, default=300, help="Amount of inactive seconds to time out client (0 = disabled)")
     args = parser.parse_args()  # parses the command line arguments
     server = ChatServer(args.p, args.d, args.t)  # creates a ChatServer instance with the specified port and debug level
     server.startServer()  # starts the ChatServer
